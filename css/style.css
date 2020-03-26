@@ -1,0 +1,57 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-size: 24px;
+    font-family: "Helvetica";
+    user-select: none;
+}
+div.row {
+    width: 100%;
+    border-bottom: 1px solid gray;
+    padding: 15px 30px;
+    box-sizing: border-box;
+}
+div.tasks-wrapper {
+    width: 100%;
+}
+div.date-row {
+    text-align: center;
+    box-sizing: border-box;
+}
+div.task-row-inner { float: left; }
+div.task-row-inner.right { width: 80%; }
+div.clear { clear: both; }
+input.new-task-name {
+    font-size: 24px;
+    color: gray;
+}
+input.new-task-name:focus { outline-width: 0; }
+
+div.task-row-inner.left { 
+    box-sizing: border-box;
+    width: 20%;
+}
+div.checkbox.unchecked:before { background-image: url("../img/check-unchecked.png"); }
+div.checkbox.checked:before { background-image: url("../img/check-checked.png"); }
+div.checkbox:before {
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    vertical-align: middle;
+    width: 50%;
+    height: 25px;
+    content: '';
+    display: inline-block;
+}
+input.btn-import-yesterday {
+    background-color: #58a;
+    border-radius: 3px;
+    font-size: 16px;
+    color: white;
+    padding: 5px 10px;
+    border: 0;
+}
+span.date { 
+    display: block;
+    margin: 10px 0;
+}

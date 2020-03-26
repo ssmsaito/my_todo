@@ -1,0 +1,168 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta http-equiv="Content-Security-Policy" content="default-src * data: gap: content: https://ssl.gstatic.com; style-src * 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="./js/jquery-1.12.4.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.2.3/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.2.3/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.2.3/firebase-database.js"></script>
+  <script src="./js/common.js"></script>
+  <script src="./js/db.js"></script>
+  <title>To-Do List</title>
+</head>
+
+<body>
+    <div class="row date-row">
+        <span class="date"></span>
+        <input type="button" class="btn-import-yesterday" value="Import undone tasks from yesterday" />
+    </div>
+    <div class="tasks-wrapper">
+    </div>
+</body>
+<script>
+    var qDateStr = getParam("date") ? getParam("date") : getStringFromDate(new Date(),"YYYY-MM-DD");
+    var qDate = new Date(qDateStr)
+    var qDateStrJa = getStringFromDate(qDate, "YYYY年MM月DD日") + `（${dayOfWeekJa[qDate.getDay()]}）`;
+    console.log(qDate);
+    $("span.date").text(qDateStrJa);
+    // adding a new task
+    function addTaskHandler(){
+        $(this).removeClass("add");
+        $(this).off("click");
+        $(this).html(`
+            <div class="task-row-inner left">
+            <div class="checkbox unchecked"></div>
+            </div>
+            <div class="task-row-inner right"></div>
+            <div class="clear"></div>
+            <input type="hidden" name="task-key" />
+        `);
+        $innerRight = $(this).find("div.task-row-inner.right");
+        $innerRight.on("click", taskNameChangeHandler);
+        $innerRight.click();
+        setCheckboxHandler();
+
+        $("div.tasks-wrapper").append(`<div class="row task-row add"><span style="color:gray;">Add task...</span></div>`);
+        $("div.task-row.add").on("click", addTaskHandler);
+    };
+    $("div.task-row.add").on("click", addTaskHandler);
+
+    // importing undone tasks from yesterday
+    $(".btn-import-yesterday").on("click", function(){
+        var _qDate = new Date(qDate)
+        var prevDay = new Date(qDate.setDate(qDate.getDate() - 1));
+        db.collection(CLCT_TASK).where("date", "==", new Date(prevDay)).where("done", "==", false).get().then(function(docs){
+            docs.forEach(function(doc){
+                console.log(_qDate);
+                var data = doc.data();
+                data["date"] = _qDate;
+                db.collection(CLCT_TASK).add(data);
+            });
+            setTimeout(function(){ window.location.reload(); }, 3000);
+        });
+    });
+
+    // clicking a checkbox
+    function setCheckboxHandler(){
+        $("div.checkbox").on("click", function(){
+            var before = $(this).hasClass("unchecked") ? "unchecked" : "checked";
+            var after = $(this).hasClass("unchecked") ? "checked" : "unchecked";
+            var taskKey = $(this).parent().parent().find("input[name=task-key]").val();
+            var isChecked = (after==="checked");
+            $(this).removeClass(before);
+            $(this).addClass(after);
+            updateTaskCheck(taskKey,isChecked);
+        });
+    }
+
+    // changing name
+    function taskNameChangeHandler(){
+        var $that = $(this);
+        $that.off("click");
+        var taskName = $that.text();
+        if(taskName==="") $that.html(`<input type="text" class="new-task-name new" value="${taskName}" /></div>`);
+        else $that.html(`<input type="text" class="new-task-name" value="${taskName}" /></div>`);
+        var $input = $that.find("input");
+        $input.focus();
+        $input[0].setSelectionRange(taskName.length, taskName.length);
+        $input.on("keypress focusout", function(e){
+            if(e.type=="focusout" || (e.type=="keypress" && e.which==13)) {
+                var taskName = $(this).val();
+                $(this).parent().html(taskName);
+                if(taskName==="") {
+                    $that.parent().remove();
+                    if($input.hasClass("new")){
+                        // do nothing
+                    } else {
+                        var taskKey = $that.parent().find("input[name=task-key]").val();
+                        deleteTaskRecord(taskKey);
+                    }
+                } else {
+                    if($input.hasClass("new")){
+                        var taskKey = createTaskRecord(taskName);
+                        $that.parent().find("input[name=task-key]").val(taskKey);
+                    } else {
+                        var taskKey = $that.parent().find("input[name=task-key]").val();
+                        updateTaskRecord(taskKey,taskName);
+                    }
+                }
+                $that.on("click", taskNameChangeHandler);
+            }
+        });
+    }
+
+    var CLCT_TASK = "tasks";
+    function getTaskRecordsByDate(dateStr, callback){
+        var taskData = {};
+        db.collection(CLCT_TASK).where("date", "==", new Date(dateStr)).get().then(function(docs){
+            docs.forEach(function(doc){
+                taskData[doc.id] = doc.data();
+            });
+            callback(taskData);
+        });
+    }
+    getTaskRecordsByDate(qDateStr,function(taskData){
+        for(key in taskData){
+            var checked = taskData[key]["done"] ? "checked" : "unchecked";
+            $("div.tasks-wrapper").append(`
+                <div class="row task-row">
+                    <div class="task-row-inner left">
+                        <div class="checkbox ${checked}"></div>
+                        <input type="hidden" name="checked" />
+                    </div>
+                    <div class="task-row-inner right">${taskData[key]["name"]}</div>
+                    <div class="clear"></div>
+                    <input type="hidden" name="task-key" value="${key}" />
+                </div>
+                `);
+        }
+        $("div.tasks-wrapper").append(`<div class="row task-row add"><span style="color:gray;">Add task...</span></div>`);
+        $("div.task-row.add").on("click", addTaskHandler);
+        setCheckboxHandler();
+        $("div.task-row-inner.right").on("click", taskNameChangeHandler);
+    });
+    function createTaskRecord(taskName){
+        var todayDateStr = getStringFromDate(new Date(), "YYYY-MM-DD");
+        var ref = db.collection(CLCT_TASK).doc();
+        ref.set({
+            date: qDate,
+            name: taskName,
+            done: false
+        });
+        return ref.id;
+    }
+    function updateTaskRecord(key,name){
+        db.collection(CLCT_TASK).doc(key).update({"name": name});
+    }
+    function deleteTaskRecord(key){
+        db.collection(CLCT_TASK).doc(key).delete();
+    }
+    function updateTaskCheck(key,checked){
+        db.collection(CLCT_TASK).doc(key).update({"done": checked});
+    }
+</script>
+</html>
