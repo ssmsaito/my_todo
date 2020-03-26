@@ -18,7 +18,8 @@
 <body>
     <div class="row date-row">
         <span class="date"></span>
-        <input type="button" class="btn-import-yesterday" value="Import undone tasks from yesterday" />
+        <input type="button" class="btn-import-yesterday" value="昨日の未完了タスクを引き継ぐ" /><br><br>
+        <a href="" class="a-prev">前の日</a>　　<a href="" class="a-next">次の日</a>
     </div>
     <div class="tasks-wrapper">
     </div>
@@ -27,6 +28,13 @@
     var qDateStr = getParam("date") ? getParam("date") : getStringFromDate(new Date(),"YYYY-MM-DD");
     var qDate = new Date(qDateStr)
     var qDateStrJa = getStringFromDate(qDate, "YYYY年MM月DD日") + `（${dayOfWeekJa[qDate.getDay()]}）`;
+
+    var prevDay = getStringFromDate(new Date(qDate.setDate(qDate.getDate() - 1)),"YYYY-MM-DD");
+    $(".a-prev").attr("href",`index.html?date=${prevDay}`);
+    var nextDay = getStringFromDate(new Date(qDate.setDate(qDate.getDate() + 1)),"YYYY-MM-DD");
+    var nextDay = getStringFromDate(new Date(qDate.setDate(qDate.getDate() + 1)),"YYYY-MM-DD");
+    var prevDay = getStringFromDate(new Date(qDate.setDate(qDate.getDate() - 1)),"YYYY-MM-DD");
+    $(".a-next").attr("href",`index.html?date=${nextDay}`);
     console.log(qDate);
     $("span.date").text(qDateStrJa);
     // adding a new task

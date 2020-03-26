@@ -24,6 +24,8 @@ div.clear { clear: both; }
 input.new-task-name {
     font-size: 24px;
     color: gray;
+    width: 100%;
+    border: 0;
 }
 input.new-task-name:focus { outline-width: 0; }
 
